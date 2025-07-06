@@ -20,7 +20,7 @@ ASSUMPTIONS
 
 That the Graph coordinates (nodes) are A...Z followed by a number, same applies for questions.
 If a broken link between nodes is encountered for any Question, answer to that question will be blank.
-The Possible Question - any node can be repeated in finding a route (including start and end nodes).
+The Possible Question - any node can be repeated in finding a path (including start and end nodes).
 The Shortest Question - can potentially have multiple answers with the same total distance.
 Expectation that input is structured correctly, however blank lines for questions and invalid numbers are handled.
 
@@ -29,6 +29,9 @@ INSTRUCTIONS TO RUN
 -------------------
 
 // ensure you have node installed - download from here https://nodejs.org/en/download
+
+
+// go to top level of project
 
 // ensure typescript is installed
 npm install -g typescript
