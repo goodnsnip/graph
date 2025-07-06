@@ -19,16 +19,12 @@ export class GraphProgram {
         ) {
             // grab the file name from command line input
             this.acceptParameter();
-
             // read in input file, and load graphnodes and questions
             this.getInput();
-
-           Promise.all(
-                // execute the questions, answer all questions asynchronously 
-                this.questions?.map(async question => {
+            // execute the questions
+            this.questions?.forEach((question: Question) => {
                     this.executeQuestions(question); 
-            }));
-        
+            });
             // output answers to file
             this.outputAnswers();
     }
@@ -49,8 +45,7 @@ export class GraphProgram {
         }
     }
 
-
-    public async executeQuestions(question: Question) {
+    public executeQuestions(question: Question) {
 
         switch (question.qFunction) {
 
@@ -71,15 +66,20 @@ export class GraphProgram {
         }
     }
 
-
     public outputAnswers() {
-        // create an output file
-        fs.writeFile('output.txt',"", (err) => {if (err )throw err;});
-        this.questions?.sort((a, b) => a.qFunction.localeCompare(b.qFunction)).forEach(question => {
-            fs.appendFile('output.txt', question.getAnswer() + '\n\n', (err) => {
-                if (err) throw err;
+
+        try {
+            // create an output file
+            fs.writeFile('output.txt',"", (err) => {if (err )throw err;});
+            this.questions?.sort((a, b) => a.qFunction.localeCompare(b.qFunction)).forEach((question:Question) => {
+                fs.appendFile('output.txt', question.getAnswer() + '\n\n', (err) => {
+                    if (err) throw err;
+                });
             });
-        });
+        }
+        catch (err){
+            throw "Error in creating output"
+        }
     }
 
     public getInput(): void {
@@ -106,7 +106,7 @@ export class GraphProgram {
             });
    
         } catch (error) {
-            console.error('Error reading the file:', error);
+            console.error('Error reading the input file: ', error);
         }
     }
 
@@ -118,44 +118,43 @@ export class GraphProgram {
 
         let i = 0;
         input?.split(' ')?.forEach((coord: string) => {
-            const firstNode = coord.substring(0,1);
-            const secondNode = coord.substring(1,2);
-            const distance = parseInt(coord.substring(2,coord.length));
 
             try {
+                const firstNode = coord.substring(0,1);
+                const secondNode = coord.substring(1,2);
+
                 const distance = parseInt(coord.substring(2,coord.length));
                 if (isNaN(distance)) throw "Distance " + coord.substring(2,coord.length) + " is not a valid number";
+
+                // load graph, first check if particaular node has already been created
+                const foundFirstNode = this?.graphNodes?.find(f => f?.name === firstNode);
+                const foundSecondNode = this?.graphNodes?.find(f => f?.name === secondNode);
+
+                if (foundFirstNode) {
+                    if (!foundFirstNode.updateNeighbours(secondNode,distance)) throw messages.DUPLICATE_COORDINATES + firstNode + secondNode ;
+
+                }
+                else {
+                    this.graphNodes[i] = new GraphNode(firstNode);
+                    this.graphNodes[i].updateNeighbours(secondNode,distance);  
+                    i++;
+                }
+
+                if (foundSecondNode) {
+                    if (!foundSecondNode.updateNeighbours(firstNode,distance)) throw messages.DUPLICATE_COORDINATES + firstNode + secondNode ;
+                }
+                else {
+                    this.graphNodes[i] = new GraphNode(secondNode);
+                    this.graphNodes[i].updateNeighbours(firstNode,distance);    
+                    i++;    
+                }
             }
             catch (err){
                 throw err;
             }
-
-
-            // load graph, first check if particaular node has already been created
-            const foundFirstNode = this?.graphNodes?.find(f => f?.name === firstNode);
-            const foundSecondNode = this?.graphNodes?.find(f => f?.name === secondNode);
-
-
-            if (foundFirstNode) {
-                if (!foundFirstNode.updateNeighbours(secondNode,distance)) throw messages.DUPLICATE_COORDINATES + firstNode + secondNode ;
-
-            }
-            else {
-                this.graphNodes[i] = new GraphNode(firstNode);
-                this.graphNodes[i].updateNeighbours(secondNode,distance);  
-                i++;
-            
-            }
-
-            if (foundSecondNode) {
-                if (!foundSecondNode.updateNeighbours(firstNode,distance)) throw messages.DUPLICATE_COORDINATES + firstNode + secondNode ;
-            }
-            else {
-                this.graphNodes[i] = new GraphNode(secondNode);
-                this.graphNodes[i].updateNeighbours(firstNode,distance);    
-                i++;    
-            }
         });
+    
+
     }
 
 
@@ -180,7 +179,6 @@ export class GraphProgram {
                     throw err;
                 }
             }
-
         }
         else if (qFunction === QuestionType.DISTANCE) {
             for (const char of parameter) {

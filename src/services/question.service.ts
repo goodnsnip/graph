@@ -3,6 +3,7 @@ import { Question } from "../classes/question";
 import { Answer } from "../interfaces/answer";
 import { PotentialPath } from "../interfaces/potentialPath";
 import { QuestionType } from "../enums/questionType";
+import { Neighbour } from "../interfaces/neighbour";
 
 export class QuestionService {
     constructor() {}
@@ -12,14 +13,14 @@ export class QuestionService {
         let resultPaths: Answer[] = [];
 
         let path = [...question.nodeArray];
-        let previousNode = graphNodes.find(f => f.name === path[0]);
+        let previousNode = graphNodes.find((f:GraphNode) => f.name === path[0]);
         path.shift();
 
         let totalDisance = 0;
         let linkBroken = false;
 
         for (let node of path) {
-            const foundLink = previousNode?.neighbours.find(f => f.name === node);
+            const foundLink = previousNode?.neighbours.find((f:Neighbour) => f.name === node);
             if (foundLink)
                 totalDisance = totalDisance + foundLink.distance;
             else {
@@ -27,7 +28,7 @@ export class QuestionService {
                 linkBroken = true;
                 break;
             }
-            previousNode = graphNodes.find(f => f.name === node);
+            previousNode = graphNodes.find((f:GraphNode) => f.name === node);
         }
     
         if (!linkBroken) {
@@ -50,9 +51,8 @@ export class QuestionService {
 
         // while there are potential paths, continue to process
         while(potentialPaths?.length > 0) {
-
             // process potential paths while there are some to process
-            potentialPaths?.forEach(poppedPath => {
+            potentialPaths?.forEach((poppedPath:PotentialPath) => {
                 // record results
                 if (poppedPath.path[poppedPath.path.length-1] === endNode){ 
                     resultPaths = this.returnResult(poppedPath,question,resultPaths);
@@ -62,9 +62,7 @@ export class QuestionService {
             });
 
             // reset the potential path array and copy in new paths
-            potentialPaths = [];
             potentialPaths = [...newPotentialPaths];
-
             // reset the temporary path array
             newPotentialPaths = [];
         } // end while
@@ -74,24 +72,18 @@ export class QuestionService {
     public returnResult(poppedPath: PotentialPath, question: Question, result: Answer[]): Answer[] {
 
         if (question.qFunction === QuestionType.SHORTEST) {
-            // if there are no results recorded yet then push first one
-            if (result && result.length === 0) {
-                result.push({path: poppedPath.path, total: poppedPath.totalDistance});
+            if (result.length === 0 || result[0].total > poppedPath.totalDistance ) {
+                // New shortest path found, reset results
+                result = [{ path: poppedPath.path, total: poppedPath.totalDistance }];
+            } else if (poppedPath.totalDistance === result[0].total) {
+                // Another shortest path found, add to results
+                result.push({ path: poppedPath.path, total: poppedPath.totalDistance });
             }
-            // as only results with the same total distance can be recorded, fine checking
-            // first element, and push results that have same total distance
-            else if (result[0].total === poppedPath.totalDistance) {
-                result.push({path: poppedPath.path, total: poppedPath.totalDistance});
-            }
-            // if new path created has lower distance, clear our array and start again with new path
-            else if (result[0].total > poppedPath.totalDistance) {
-                result = [];
-                result.push({path: poppedPath.path, total: poppedPath.totalDistance});
-            }
-        }          
-        else if (question.qFunction === QuestionType.POSSIBLE && poppedPath.totalDistance <= question.limit){
-            // for possible paths, record all paths that are within limit
-            result.push({path: poppedPath.path, total: poppedPath.totalDistance});
+        } else if (
+            question.qFunction === QuestionType.POSSIBLE &&
+            poppedPath.totalDistance <= question.limit
+        ) {
+            result.push({ path: poppedPath.path, total: poppedPath.totalDistance });
         }
         return result;
 
@@ -102,18 +94,16 @@ export class QuestionService {
         if ((question.qFunction === QuestionType.POSSIBLE && poppedPath.totalDistance <= question.limit) || 
             (question.qFunction === QuestionType.SHORTEST)) {
 
-            let foundNode = graphNodes.find(f=> f.name === poppedPath.path[poppedPath.path.length-1]);
+            let foundNode = graphNodes.find((f: GraphNode) => f.name === poppedPath.path[poppedPath.path.length-1]);
 
-            foundNode?.neighbours.forEach(n => {
+            foundNode?.neighbours.forEach((n:Neighbour) => {
                 let repeatedNode;
                 // find repeating node for shortest path
                 if (question.qFunction === QuestionType.SHORTEST) {
-                    repeatedNode = poppedPath.path.find(f => f === n.name);
+                    repeatedNode = poppedPath.path.find((f:string) => f === n.name);
                 }
-
                 // will not repeat nodes for shortest path as no shortest path could
                 // ever repeat a node
-
                 if (!(question.qFunction === QuestionType.SHORTEST && repeatedNode)) {     
                     //create new object to push to array
                     let path = [...poppedPath.path];
